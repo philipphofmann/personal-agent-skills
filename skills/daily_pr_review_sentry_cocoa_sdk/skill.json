@@ -1,0 +1,48 @@
+{
+  "name": "daily_pr_review_sentry_cocoa_sdk",
+  "version": "1.0.0",
+  "description": "Overview of easy-to-approve PRs for the Sentry Cocoa SDK",
+  "author": "Philipp Hofmann",
+  "repository": "getsentry/sentry-cocoa",
+  "capabilities": [
+    "read-only",
+    "github-query",
+    "pr-analysis"
+  ],
+  "requirements": {
+    "tools": [
+      "gh (GitHub CLI)"
+    ],
+    "permissions": [
+      "Read access to getsentry/sentry-cocoa repository"
+    ]
+  },
+  "safety": {
+    "no_approvals": true,
+    "no_comments": true,
+    "no_commits": true,
+    "no_code_changes": true
+  },
+  "configuration": {
+    "repository": "getsentry/sentry-cocoa",
+    "easy_approve_criteria": {
+      "max_age_days": 7,
+      "max_files_changed": 20,
+      "max_lines_changed": 150,
+      "preferred_file_types": [
+        "*.md",
+        "*.txt",
+        "*.yml",
+        "*.yaml"
+      ],
+      "low_risk_patterns": [
+        "docs",
+        "README",
+        "changelog",
+        "comment",
+        "typo",
+        "test"
+      ]
+    }
+  }
+}
