@@ -43,13 +43,39 @@ Copy the contents of `instruction.md` and paste it into your Claude Code session
 
 ### Option 3: Direct Command
 
-From the skill directory:
+Run the filtered query directly:
 
 ```bash
-gh pr list --repo getsentry/sentry-cocoa --state open --json number,title,url,author,isDraft,reviews,files,additions,deletions,labels
+gh pr list --repo getsentry/sentry-cocoa --state open --json number,title,url,author,isDraft,reviews,additions,deletions,labels,updatedAt --limit 100 | jq -r '
+# Calculate date 7 days ago
+def seven_days_ago: now - (7 * 24 * 60 * 60);
+
+# Check if PR is approved
+def is_approved: .reviews | any(.state == "APPROVED");
+
+# Check for blocking labels
+def has_blocking_labels: .labels | any(.name | test("do-not-merge|blocked|wip"; "i"));
+
+# Filter and display PRs
+map(select(
+  (.updatedAt | fromdateiso8601) >= seven_days_ago and
+  (is_approved | not) and
+  (.isDraft | not) and
+  (has_blocking_labels | not)
+)) | map({
+  number,
+  title,
+  url,
+  additions,
+  deletions,
+  total_lines: (.additions + .deletions)
+}) | sort_by(.total_lines)[]
+'
 ```
 
 Then ask Claude Code to analyze the output using the criteria in `instruction.md`.
+
+**Note:** The command uses `jq` to avoid token limit errors when processing large amounts of PR data.
 
 ## What It Does
 
@@ -133,6 +159,14 @@ Ensure you have read access to the repository. Check with:
 ```bash
 gh repo view getsentry/sentry-cocoa
 ```
+
+### "File content exceeds maximum allowed tokens"
+This error occurs when trying to process too much PR data at once. The skill has been updated to:
+- Use `jq` to filter data immediately (never store raw output)
+- Exclude the `files` field from initial queries
+- Fetch file details per-PR only after filtering
+
+If you still encounter this error, ensure you're using the updated `instruction.md` that processes data with `jq` in the initial query.
 
 ## Design Decisions
 

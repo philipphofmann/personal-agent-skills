@@ -8,34 +8,74 @@ Provide an overview of open pull requests that are **easy and quick to approve**
 
 ## Step-by-Step Process
 
-### 1. Query Open Pull Requests
+### 1. Query and Filter Open Pull Requests
 
-Use the GitHub CLI to fetch all open PRs for `getsentry/sentry-cocoa`:
+**IMPORTANT:** To avoid token limit errors, process data with `jq` immediately instead of storing raw output.
+
+Use the GitHub CLI with `jq` to fetch and filter PRs in one command:
 
 ```bash
-gh pr list --repo getsentry/sentry-cocoa --state open --json number,title,url,author,isDraft,reviews,files,additions,deletions,labels,updatedAt
+gh pr list --repo getsentry/sentry-cocoa --state open --json number,title,url,author,isDraft,reviews,additions,deletions,labels,updatedAt --limit 100 | jq -r '
+# Calculate date 7 days ago
+def seven_days_ago: now - (7 * 24 * 60 * 60);
+
+# Check if PR is approved
+def is_approved: .reviews | any(.state == "APPROVED");
+
+# Check for blocking labels
+def has_blocking_labels: .labels | any(.name | test("do-not-merge|blocked|wip"; "i"));
+
+# Calculate total lines changed
+def total_lines: .additions + .deletions;
+
+# Check if easy to approve based on size
+def is_easy_size: total_lines <= 150;
+
+# Filter PRs
+map(select(
+  (.updatedAt | fromdateiso8601) >= seven_days_ago and
+  (is_approved | not) and
+  (.isDraft | not) and
+  (has_blocking_labels | not)
+)) | map({
+  number,
+  title,
+  url,
+  author: .author.login,
+  is_bot: .author.is_bot,
+  additions,
+  deletions,
+  total_lines: total_lines,
+  is_easy: is_easy_size,
+  updatedAt
+}) | sort_by(.total_lines)[]
+'
 ```
 
-### 2. Filter PRs
+This filters out PRs that:
+- Are older than 7 days
+- Are already approved
+- Are drafts
+- Have blocking labels like `do-not-merge`, `blocked`, or `wip`
 
-Exclude PRs that:
-- Are older than 7 days (check `updatedAt` field - must be within the last week)
-- Are already approved (check `reviews` field for approved status)
-- Are drafts (`isDraft: true`)
-- Are marked with `do-not-merge` or similar blocking labels
+### 2. Analyze Each Remaining PR
 
-### 3. Analyze Each Remaining PR
+For each filtered PR, fetch file details to determine if it's "easy to approve":
 
-For each PR, determine if it's "easy to approve" based on:
+```bash
+gh pr view <PR_NUMBER> --repo getsentry/sentry-cocoa --json files | jq -r '.files[].path'
+```
+
+Determine risk level based on:
 
 **Size Heuristics:**
 - **Small**: ≤20 files changed AND ≤150 total lines changed
 - **Medium**: 21-40 files changed AND ≤300 total lines changed
 
 **Low-Risk Indicators:**
-- Documentation-only changes (`.md`, `.txt` files)
-- Test-only changes (files in `Tests/` or `*Test.swift`)
-- Configuration files (`.yml`, `.yaml`, `.json`)
+- Documentation-only changes (all files match: `.md`, `.txt`, `^docs/`)
+- Test-only changes (all files match: `Test`, `Spec`, `test`, `spec`)
+- Configuration files (all files match: `.yml`, `.yaml`, `.json`, `.plist`)
 - Typo fixes or comment updates (check title/labels)
 - Dependency updates from trusted bots (Dependabot, Renovate)
 
@@ -45,14 +85,19 @@ For each PR, determine if it's "easy to approve" based on:
 - Breaking changes (check labels)
 - Multiple reviewers already engaged in discussion
 
-### 4. Rank and Sort
+### 3. Categorize and Rank
 
-Sort the filtered PRs by:
-1. Documentation/test-only changes (highest priority)
-2. Small size (by total lines changed)
-3. Trusted bot PRs (dependency updates)
+For each PR, assign a risk level:
+1. **documentation-only** - All files are docs (`.md`, `.txt`)
+2. **test-only** - All files are tests
+3. **config-only** - All files are config (`.yml`, `.yaml`, `.json`, `.plist`)
+4. **very-small** - ≤5 files, ≤50 lines total
+5. **small** - ≤20 files, ≤150 lines total
+6. **medium-to-large** - Everything else
 
-### 5. Output Format
+Sort PRs by this priority order (highest to lowest).
+
+### 4. Output Format
 
 For each easy-to-approve PR, output:
 
@@ -60,24 +105,33 @@ For each easy-to-approve PR, output:
 ### [PR #<number>] <title>
 🔗 <url>
 📊 Stats: <X> files changed, +<additions>/-<deletions> lines
-📝 Rationale: <short explanation>
+📝 Rationale: <short explanation with file details>
 
 ---
 ```
 
 **Rationale Examples:**
+- "Config-only Dependabot update to GitHub Actions workflow (`.github/workflows/release.yml`)"
 - "Documentation-only: updates README with installation instructions"
 - "Test-only: adds unit tests for error handling"
 - "Typo fix: corrects spelling in code comments"
-- "Dependency update: Dependabot bump for XCTest framework"
-- "Small change: minor refactor of logging utility (3 files, 42 lines)"
+- "Very small change: minor refactor of logging utility (3 files, 42 lines)"
 
-### 6. Summary
+### 5. Summary
 
 At the end, provide:
 - Total number of easy-to-approve PRs found
 - Total number of open PRs analyzed
-- Any PRs that might need attention but don't meet "easy" criteria
+- Breakdown of why PRs were excluded (age, already approved, size)
+- Any recent PRs that might need attention but don't meet "easy" criteria
+
+### 6. Implementation Notes
+
+**To avoid token limit errors:**
+1. Always use `jq` to filter data immediately - never store raw `gh pr list` output
+2. Don't fetch the `files` field in the initial query (it's too large)
+3. Fetch file details per-PR only for candidates that pass initial filtering
+4. Process data in a streaming fashion with `jq` rather than storing large JSON
 
 ## Safety Constraints
 
@@ -130,4 +184,10 @@ Found 3 easy-to-approve PRs out of 12 open PRs
 
 ## Begin
 
-Start by querying the open PRs and analyzing them according to the criteria above.
+1. Run the initial filtered query using `gh pr list` with `jq` (from Step 1)
+2. For each filtered PR, fetch file details using `gh pr view <number> --json files`
+3. Analyze and categorize each PR by risk level
+4. Output easy-to-approve PRs in the specified format
+5. Provide summary statistics
+
+Remember: Process data efficiently with `jq` to avoid token limit errors.
