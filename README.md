@@ -11,6 +11,8 @@ This repository contains independent skills that can be invoked via the Claude C
 ```
 personal-agent-skills/
 ├── README.md
+├── bin/
+│   └── sync-skills.sh          # Sync skills to Claude Code
 └── skills/
     └── <skill-name>/
         ├── skill.json          # Skill metadata and configuration
@@ -23,9 +25,19 @@ personal-agent-skills/
 - **daily_pr_review_sentry_cocoa_sdk**: Overview of easy-to-approve PRs for the Sentry Cocoa SDK
 - **stacked-pr-merge-main**: Safely merge main into feature branch created from another merged branch, preferring current branch on conflicts
 
+## Setup
+
+Sync all skills to Claude Code (one-time setup):
+
+```bash
+./bin/sync-skills.sh
+```
+
+This creates symlinks in `~/.claude/skills/` for all skills in this repo. Run it again when you add new skills.
+
 ## Usage
 
-See **[USAGE.md](USAGE.md)** for detailed instructions on running skills.
+See **[USAGE.md](USAGE.md)** for detailed instructions.
 
 **Quick Start:**
 
@@ -33,11 +45,12 @@ See **[USAGE.md](USAGE.md)** for detailed instructions on running skills.
 # Start Claude Code
 claude
 
-# In Claude session, execute a skill
-> Execute the skill at /path/to/personal-agent-skills/skills/daily_pr_review_sentry_cocoa_sdk/instruction.md
+# Use a skill directly (after running sync-skills.sh)
+> /stacked-pr-merge-main
+> /daily_pr_review_sentry_cocoa_sdk
 ```
 
-Or simply copy the contents of `instruction.md` and paste into Claude Code.
+**Alternative:** Execute by file path or copy-paste the `instruction.md` content.
 
 Refer to individual skill READMEs for specific usage instructions.
 
