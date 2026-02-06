@@ -1,0 +1,40 @@
+{
+  "name": "stacked-pr-merge-main",
+  "version": "1.0.0",
+  "description": "Safely merge main into feature branch created from another merged branch, preferring current branch on conflicts",
+  "author": "Philipp Hofmann",
+  "capabilities": [
+    "git-operations",
+    "merge-resolution",
+    "conditional-testing"
+  ],
+  "requirements": {
+    "tools": [
+      "git"
+    ],
+    "permissions": [
+      "Git read/write access",
+      "Ability to create branches",
+      "Ability to push to remote"
+    ]
+  },
+  "safety": {
+    "creates_backup": true,
+    "requires_clean_working_directory": true,
+    "prompts_before_push": true,
+    "prompts_before_cleanup": true,
+    "no_rebase": true,
+    "preserves_current_branch": true
+  },
+  "workflow": [
+    "Verify clean working directory",
+    "Create local backup branch",
+    "Fetch and merge main with -X ours",
+    "Resolve any blocking conflicts",
+    "Run tests only if conflicts occurred (rely on CI for clean merges)",
+    "Prompt before pushing",
+    "Push merge commit",
+    "Prompt for user verification",
+    "Delete backup branch after confirmation"
+  ]
+}
