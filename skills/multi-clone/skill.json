@@ -1,0 +1,24 @@
+{
+  "name": "multi-clone",
+  "version": "1.0.0",
+  "description": "Clone a GitHub repository multiple times into numbered folders for parallel agent work",
+  "author": "Philipp Hofmann",
+  "capabilities": [
+    "git-operations",
+    "directory-creation"
+  ],
+  "requirements": {
+    "tools": [
+      "git"
+    ],
+    "permissions": [
+      "Git clone access",
+      "Filesystem write access"
+    ]
+  },
+  "safety": {
+    "no_force_operations": true,
+    "no_destructive_operations": true,
+    "prompts_before_clone": true
+  }
+}
