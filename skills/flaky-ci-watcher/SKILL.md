@@ -1,6 +1,6 @@
 ---
 name: flaky-ci-watcher
-description: Watch your own approved open PRs across all repos, automatically re-run flaky CI failures (up to 2x), and alert in the terminal when a failure looks real (caused by your changes) or stays flaky. Use when you want CI monitored and flaky jobs re-run on your behalf while you let auto-merge handle the rest. Best driven on a loop, e.g. /loop 5m /flaky-ci-watcher.
+description: Watch your own approved open PRs across all repos, automatically re-run flaky CI failures (up to 2x), and alert in the terminal when a failure looks real (caused by your changes) or stays flaky. Use when you want CI monitored and flaky jobs re-run on your behalf while you let auto-merge handle the rest. Runs continuously as a cheap background watcher that polls every ~10s and only wakes for real work when a check fails.
 ---
 
 # Flaky CI Watcher
@@ -18,22 +18,71 @@ comments, or pushes code.** Its only write actions are re-running CI jobs.
 
 ```
 RERUN_CAP        = 2        # max automatic re-runs of a flaky-looking job before escalating
+POLL_INTERVAL    = 10       # seconds between cheap CI polls in the background watcher (10–30s)
 SCOPE            = my approved open PRs, across all repositories
 NOTIFY_CHANNEL   = terminal (print the alert in this session)
-STATE_FILE       = ${TMPDIR:-/tmp}/flaky-ci-watcher-state.json
+STATE_DIR        = ${FLAKY_CI_WATCHER_HOME:-$HOME/.claude/flaky-ci-watcher}
+STATE_FILE       = $STATE_DIR/state.json
+SIG_FILE         = $STATE_DIR/lastsig   # managed by watch.sh
 ```
 
-This skill is meant to be run **repeatedly** — drive it with the `loop` skill,
-e.g. `/loop 5m /flaky-ci-watcher`, or re-invoke it manually. Each run is one
-pass. State (re-run counts, what was already reported) persists in `STATE_FILE`
-between passes so you never exceed `RERUN_CAP` and never alert twice for the same
-thing.
+`STATE_DIR` lives under Claude Code's own user-data directory (`~/.claude`): a
+stable, user-owned location that persists across sessions and repos, is writable
+without per-write approval, and stays out of any git checkout. Override it with
+the `FLAKY_CI_WATCHER_HOME` env var if needed.
+
+This skill is meant to be run **repeatedly**. The preferred way is the
+**continuous background mode** below: a cheap bash watcher polls CI every
+`POLL_INTERVAL` seconds and only wakes the agent to do real work (fetch logs,
+classify, re-run, alert) when a check actually **fails** — so a tight 10s cadence
+costs almost nothing while CI is merely pending. You can also re-invoke it
+manually for a single pass. Each wake-up is **one pass**. State (re-run counts,
+what was already reported) persists in `STATE_FILE` between passes so you never
+exceed `RERUN_CAP` and never alert twice for the same thing.
+
+## Continuous background mode (preferred)
+
+Run the skill as a long-lived **background watcher** that polls CI every
+`POLL_INTERVAL` seconds but only wakes you when there is something to act on.
+This honours a tight 10–30s cadence without spending model tokens or GitHub API
+quota on every tick.
+
+The watcher lives in its own file next to this skill — [`watch.sh`](./watch.sh) —
+so it's easy to maintain and test independently of this doc. Start it once as a
+background shell (it drives this session via the `loop` skill, emitting a
+sentinel only on a *new* failure or when all CI settles):
+
+```bash
+bash "$SKILL_DIR/watch.sh" "$POLL_INTERVAL"
+# $SKILL_DIR is this skill's directory, e.g. ~/.claude/skills/flaky-ci-watcher
+# POLL_INTERVAL (seconds) is optional; defaults to 10.
+```
+
+How it behaves:
+- **All checks pending/pass** → the watcher stays silent and keeps polling every
+  `POLL_INTERVAL`s. No agent wake, no model cost.
+- **A new failing check appears** (failure *signature* changes) → emits the
+  sentinel once, waking the agent to run **one pass** (§§1–7) against the failures.
+- After the agent re-runs a flaky job, that check goes pending → the signature
+  changes; when it fails *again* the watcher wakes the agent again, and the
+  `RERUN_CAP` in `STATE_FILE` stops the cycle and escalates.
+- **All PRs settle** (no pending, no fails) → emits a final wake and exits the
+  loop. Re-arm it later if you open new PRs.
+
+Wire-up rules (from the `loop` skill): launch the loop as one background shell
+with `notify_on_output` on `^AGENT_LOOP_WAKE_flakyci`, track its PID so it can be
+stopped, and on each sentinel run the pass below. Don't start a second watcher if
+one is already running. Polling every 10s does ~2 `gh` calls per approved PR per
+tick — comfortably within GitHub's authenticated rate limit for a normal number
+of open PRs; raise `POLL_INTERVAL` toward 30s if you watch many PRs at once.
 
 ## One pass
 
 ### 1. Load state
 
-Read `STATE_FILE` if it exists (JSON). If missing/corrupt, start from `{}`.
+Read `STATE_FILE` if it exists (JSON). If missing/corrupt, start from `{}`
+(create `STATE_DIR` with `mkdir -p` first if it doesn't exist — `watch.sh` does
+this for you, but a manual pass may run without it).
 The state maps a key `"<repo>#<pr>#<workflow>"` to:
 
 ```json
@@ -167,6 +216,11 @@ at `RERUN_CAP` per workflow per head SHA.
 in every alert; never alert twice for the same key unless a new commit was pushed.
 
 ## Begin
+
+If invoked to **start watching** (and no watcher is already running), arm the
+background watcher from *Continuous background mode* above, confirm the interval
+and PID, then run one pass immediately. On each sentinel wake-up — or when
+invoked manually for a single pass — do:
 
 1. Load `STATE_FILE`.
 2. Find your approved open PRs and filter to those with running or failing CI.
