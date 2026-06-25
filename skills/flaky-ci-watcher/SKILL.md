@@ -23,7 +23,6 @@ SCOPE            = my approved open PRs, across all repositories
 NOTIFY_CHANNEL   = terminal (print the alert in this session)
 STATE_DIR        = ${FLAKY_CI_WATCHER_HOME:-$HOME/.claude/flaky-ci-watcher}
 STATE_FILE       = $STATE_DIR/state.json
-SIG_FILE         = $STATE_DIR/lastsig   # managed by watch.sh
 ```
 
 `STATE_DIR` lives under Claude Code's own user-data directory (`~/.claude`): a
@@ -48,33 +47,36 @@ This honours a tight 10–30s cadence without spending model tokens or GitHub AP
 quota on every tick.
 
 The watcher lives in its own file next to this skill — [`watch.sh`](./watch.sh) —
-so it's easy to maintain and test independently of this doc. Start it once as a
-background shell (it drives this session via the `loop` skill, emitting a
-sentinel only on a *new* failure or when all CI settles):
+so it's easy to maintain and test independently of this doc. It uses a **one-shot
+wake model**: it polls quietly while CI is pending and, the moment it sees
+something actionable (a failing check, or all PRs fully settled), it prints a
+single sentinel line and **exits**. The agent harness re-invokes the agent when a
+tracked background task exits, so the exit *is* the wake.
+
+**Arm it via the harness's background mode** (the `loop` skill, or a backgrounded
+tool call the harness tracks) — **never** `nohup`/`&`/`disown`. A detached
+process is invisible to the harness and can never wake the agent (it just writes
+the sentinel to a log nobody reads). Track its task id/PID so it can be stopped.
 
 ```bash
-bash "$SKILL_DIR/watch.sh" "$POLL_INTERVAL"
+bash "$SKILL_DIR/watch.sh" "$POLL_INTERVAL"   # run in the harness's BACKGROUND mode
 # $SKILL_DIR is this skill's directory, e.g. ~/.claude/skills/flaky-ci-watcher
 # POLL_INTERVAL (seconds) is optional; defaults to 10.
 ```
 
-How it behaves:
-- **All checks pending/pass** → the watcher stays silent and keeps polling every
-  `POLL_INTERVAL`s. No agent wake, no model cost.
-- **A new failing check appears** (failure *signature* changes) → emits the
-  sentinel once, waking the agent to run **one pass** (§§1–7) against the failures.
-- After the agent re-runs a flaky job, that check goes pending → the signature
-  changes; when it fails *again* the watcher wakes the agent again, and the
-  `RERUN_CAP` in `STATE_FILE` stops the cycle and escalates.
-- **All PRs settle** (no pending, no fails) → emits a final wake and exits the
-  loop. Re-arm it later if you open new PRs.
+The cycle:
+1. Arm `watch.sh` in the background. It polls every `POLL_INTERVAL`s.
+2. **While everything is pending/pass** → silent, no agent wake, no model cost.
+3. **A check fails** *or* **all PRs settle** → it prints the sentinel and exits →
+   the harness wakes the agent → run **one pass** (§§1–7).
+4. After the pass (e.g. you re-ran a flaky job, sending it back to pending),
+   **re-arm a fresh `watch.sh`** to continue watching. The `RERUN_CAP` in
+   `STATE_FILE` bounds re-runs across passes and escalates when exhausted.
 
-Wire-up rules (from the `loop` skill): launch the loop as one background shell
-with `notify_on_output` on `^AGENT_LOOP_WAKE_flakyci`, track its PID so it can be
-stopped, and on each sentinel run the pass below. Don't start a second watcher if
-one is already running. Polling every 10s does ~2 `gh` calls per approved PR per
-tick — comfortably within GitHub's authenticated rate limit for a normal number
-of open PRs; raise `POLL_INTERVAL` toward 30s if you watch many PRs at once.
+Don't arm a second watcher if one is already armed. Polling every 10s does ~2
+`gh` calls per approved PR per tick — comfortably within GitHub's authenticated
+rate limit for a normal number of open PRs; raise `POLL_INTERVAL` toward 30s if
+you watch many PRs at once.
 
 ## One pass
 
