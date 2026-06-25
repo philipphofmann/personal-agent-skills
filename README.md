@@ -25,6 +25,7 @@ personal-agent-skills/
 - **daily_pr_review_sentry_cocoa_sdk**: Overview of easy-to-approve PRs for the Sentry Cocoa SDK
 - **stacked-pr-merge-main**: Safely merge main into feature branch created from another merged branch, preferring current branch on conflicts
 - **multi-clone**: Clone a GitHub repository multiple times into numbered folders for parallel agent work
+- **flaky-ci-watcher**: Watch your approved open PRs, auto re-run flaky CI failures, and alert in the terminal when a failure looks real or stays flaky
 
 ## Setup
 
