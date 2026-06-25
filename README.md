@@ -15,14 +15,18 @@ personal-agent-skills/
 │   └── sync-skills.sh          # Sync skills to Claude Code
 └── skills/
     └── <skill-name>/
-        ├── skill.json          # Skill metadata and configuration
-        ├── instruction.md      # The actual prompt/instructions for Claude
+        ├── SKILL.md            # Native Claude Code skill: YAML frontmatter + instructions
+        ├── skill.json          # Optional extra metadata (not read by Claude Code)
         └── README.md           # Human-readable documentation
 ```
 
+Each skill uses the native `SKILL.md` format, so once synced it is available as
+`/<skill-name>` in **any** directory (skills live in your user-level
+`~/.claude/skills/`), not just inside this repo.
+
 ## Available Skills
 
-- **daily_pr_review_sentry_cocoa_sdk**: Overview of easy-to-approve PRs for the Sentry Cocoa SDK
+- **daily-pr-review-sentry-cocoa-sdk**: Overview of easy-to-approve PRs for the Sentry Cocoa SDK
 - **stacked-pr-merge-main**: Safely merge main into feature branch created from another merged branch, preferring current branch on conflicts
 - **multi-clone**: Clone a GitHub repository multiple times into numbered folders for parallel agent work
 - **flaky-ci-watcher**: Watch your approved open PRs, auto re-run flaky CI failures, and alert in the terminal when a failure looks real or stays flaky
@@ -49,10 +53,10 @@ claude
 
 # Use a skill directly (after running sync-skills.sh)
 > /stacked-pr-merge-main
-> /daily_pr_review_sentry_cocoa_sdk
+> /daily-pr-review-sentry-cocoa-sdk
 ```
 
-**Alternative:** Execute by file path or copy-paste the `instruction.md` content.
+**Alternative:** Execute by file path or copy-paste the `SKILL.md` content.
 
 Refer to individual skill READMEs for specific usage instructions.
 

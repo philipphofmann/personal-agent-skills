@@ -34,12 +34,12 @@ Run this anytime to quickly triage and clear out simple PRs before tackling more
 If you have this skill registered in your Claude Code configuration:
 
 ```bash
-claude /daily_pr_review_sentry_cocoa_sdk
+claude /daily-pr-review-sentry-cocoa-sdk
 ```
 
 ### Option 2: Manual Invocation
 
-Copy the contents of `instruction.md` and paste it into your Claude Code session.
+Copy the contents of `SKILL.md` and paste it into your Claude Code session.
 
 ### Option 3: Direct Command
 
@@ -73,7 +73,7 @@ map(select(
 '
 ```
 
-Then ask Claude Code to analyze the output using the criteria in `instruction.md`.
+Then ask Claude Code to analyze the output using the criteria in `SKILL.md`.
 
 **Note:** The command uses `jq` to avoid token limit errors when processing large amounts of PR data.
 
@@ -143,7 +143,7 @@ You can adjust these values in `skill.json` to match your preferences.
 To adapt this skill for other repositories:
 
 1. Update `repository` in `skill.json`
-2. Modify the `gh pr list --repo` command in `instruction.md`
+2. Modify the `gh pr list --repo` command in `SKILL.md`
 3. Adjust the size/risk criteria to match the project's needs
 
 ## Troubleshooting
@@ -166,7 +166,7 @@ This error occurs when trying to process too much PR data at once. The skill has
 - Exclude the `files` field from initial queries
 - Fetch file details per-PR only after filtering
 
-If you still encounter this error, ensure you're using the updated `instruction.md` that processes data with `jq` in the initial query.
+If you still encounter this error, ensure you're using the updated `SKILL.md` that processes data with `jq` in the initial query.
 
 ## Design Decisions
 

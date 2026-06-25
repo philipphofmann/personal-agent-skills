@@ -1,3 +1,8 @@
+---
+name: multi-clone
+description: Clone a GitHub repository multiple times into numbered sibling folders so you can run independent Claude Code agents in parallel, each in its own working copy. Use when you want several isolated clones of the same repo for concurrent agent work.
+---
+
 # Multi-Clone: Parallel Agent Workspace Setup
 
 Clone a GitHub repository multiple times into numbered folders so you can run independent agents in each.

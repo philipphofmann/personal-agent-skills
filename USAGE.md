@@ -8,10 +8,10 @@ This guide explains how to use skills from this repository with the Claude Code 
 
 1. Navigate to the skill directory:
    ```bash
-   cd skills/daily_pr_review_sentry_cocoa_sdk
+   cd skills/daily-pr-review-sentry-cocoa-sdk
    ```
 
-2. Open `instruction.md` and copy its contents
+2. Open `SKILL.md` and copy its contents
 
 3. In your Claude Code session, paste the instructions
 
@@ -22,7 +22,7 @@ This guide explains how to use skills from this repository with the Claude Code 
 If you're in a Claude Code session:
 
 ```
-Please execute the skill at /Users/philipp.hofmann/git-repos/personal-agent-skills/skills/daily_pr_review_sentry_cocoa_sdk/instruction.md
+Please execute the skill at /Users/philipp.hofmann/git-repos/personal-agent-skills/skills/daily-pr-review-sentry-cocoa-sdk/SKILL.md
 ```
 
 Claude will read and execute the instruction file.
@@ -33,7 +33,7 @@ If you want to invoke skills with a short command like `/daily_pr_review`:
 
 1. Check if Claude Code supports custom skill registration in your settings
 2. Add the skill path to your configuration
-3. Invoke with `/daily_pr_review_sentry_cocoa_sdk`
+3. Invoke with `/daily-pr-review-sentry-cocoa-sdk`
 
 (Note: This depends on your Claude Code CLI configuration capabilities)
 
@@ -50,7 +50,7 @@ Metadata about the skill:
 
 **You don't usually need to read this file** - it's for documentation and potential automation.
 
-### `instruction.md`
+### `SKILL.md`
 The actual prompt that Claude executes. This is the **core of the skill**.
 
 **This is what you copy-paste or reference** when running the skill manually.
@@ -78,16 +78,16 @@ Most skills are designed to be run interactively:
 
 2. Load the skill:
    ```
-   Execute the daily PR review skill from /Users/philipp.hofmann/git-repos/personal-agent-skills/skills/daily_pr_review_sentry_cocoa_sdk/instruction.md
+   Execute the daily PR review skill from /Users/philipp.hofmann/git-repos/personal-agent-skills/skills/daily-pr-review-sentry-cocoa-sdk/SKILL.md
    ```
 
-3. Claude will execute the steps in `instruction.md`
+3. Claude will execute the steps in `SKILL.md`
 
 ### Non-Interactive Mode
 
 Some skills can be run non-interactively by:
 
-1. Extracting the shell commands from `instruction.md`
+1. Extracting the shell commands from `SKILL.md`
 2. Running them directly in your terminal
 3. Feeding the output to Claude for analysis
 
@@ -97,7 +97,7 @@ Example:
 gh pr list --repo getsentry/sentry-cocoa --state open --json number,title,url,author,isDraft,reviews,files,additions,deletions,labels > /tmp/prs.json
 
 # Ask Claude to analyze
-claude "Analyze this PR data according to the daily_pr_review_sentry_cocoa_sdk skill" < /tmp/prs.json
+claude "Analyze this PR data according to the daily-pr-review-sentry-cocoa-sdk skill" < /tmp/prs.json
 ```
 
 ## Creating Your Own Skills
@@ -112,7 +112,7 @@ To create a new skill:
 2. Create the three required files:
    ```bash
    touch skills/my-new-skill/skill.json
-   touch skills/my-new-skill/instruction.md
+   touch skills/my-new-skill/SKILL.md
    touch skills/my-new-skill/README.md
    ```
 
@@ -142,7 +142,7 @@ ls -la /Users/philipp.hofmann/git-repos/personal-agent-skills/skills/
 
 Check file permissions:
 ```bash
-chmod +r skills/*/instruction.md
+chmod +r skills/*/SKILL.md
 ```
 
 ### "Command not found" (e.g., `gh`)
@@ -154,7 +154,7 @@ brew install gh  # For GitHub CLI
 
 ### "Claude doesn't follow the instructions"
 
-- Ensure `instruction.md` is clear and unambiguous
+- Ensure `SKILL.md` is clear and unambiguous
 - Break complex tasks into smaller steps
 - Add more examples of expected output
 - Test with simpler inputs first
@@ -184,7 +184,7 @@ brew install gh  # For GitHub CLI
 claude
 
 # In Claude session
-> Execute /Users/philipp.hofmann/git-repos/personal-agent-skills/skills/daily_pr_review_sentry_cocoa_sdk/instruction.md
+> Execute /Users/philipp.hofmann/git-repos/personal-agent-skills/skills/daily-pr-review-sentry-cocoa-sdk/SKILL.md
 
 # Claude will:
 # 1. Query open PRs
@@ -197,7 +197,7 @@ claude
 
 ```bash
 # Run PR review skill to get easy PRs
-> Execute daily_pr_review_sentry_cocoa_sdk
+> Execute daily-pr-review-sentry-cocoa-sdk
 
 # Then use output to prioritize work
 > Based on these results, create a prioritized task list for today

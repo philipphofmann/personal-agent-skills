@@ -1,3 +1,8 @@
+---
+name: stacked-pr-merge-main
+description: Safely merge main into a feature branch that was stacked on another (already-merged) branch, using -X ours to prefer the current branch on conflicts. Creates a backup branch, auto-resolves conflicts in favor of your branch, tests only when conflicts occurred, and prompts before pushing. Use for stacked PRs showing false conflicts after the base branch merged.
+---
+
 # Stacked PR: Merge Main with Conflict Preference
 
 Merge `main` into a feature branch created from another branch that was merged into `main`. Use `-X ours` to prefer the current branch on conflicts.

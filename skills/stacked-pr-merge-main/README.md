@@ -37,7 +37,7 @@ Safely merge `main` into a feature branch created from another branch that was a
 claude
 
 # Execute the skill
-> Execute the skill at /path/to/personal-agent-skills/skills/stacked-pr-merge-main/instruction.md
+> Execute the skill at /path/to/personal-agent-skills/skills/stacked-pr-merge-main/SKILL.md
 ```
 
 ## Conditional Testing

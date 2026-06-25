@@ -1,6 +1,6 @@
 # Testing Guide
 
-How to test the `daily_pr_review_sentry_cocoa_sdk` skill.
+How to test the `daily-pr-review-sentry-cocoa-sdk` skill.
 
 ## Prerequisites
 
@@ -209,7 +209,7 @@ Manually verify the filtering logic by:
 When updating the skill, test these scenarios:
 
 1. **Before**: Run the skill and save output
-2. **Change**: Make modifications to `instruction.md` or `skill.json`
+2. **Change**: Make modifications to `SKILL.md` or `skill.json`
 3. **After**: Run the skill again
 4. **Compare**: Ensure changes behave as expected
 
